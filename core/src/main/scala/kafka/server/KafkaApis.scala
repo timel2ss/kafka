@@ -28,14 +28,13 @@ import kafka.utils.{CoreUtils, Logging}
 import org.apache.kafka.admin.AdminUtils
 import org.apache.kafka.clients.admin.AlterConfigOp.OpType
 import org.apache.kafka.clients.admin.{AlterConfigOp, ConfigEntry}
-import org.apache.kafka.common.acl.AclOperation._
 import org.apache.kafka.common.acl.AclOperation
+import org.apache.kafka.common.acl.AclOperation._
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.errors._
 import org.apache.kafka.common.internals.Topic.{GROUP_METADATA_TOPIC_NAME, TRANSACTION_STATE_TOPIC_NAME, isInternal}
 import org.apache.kafka.common.internals.{FatalExitError, Topic}
-import org.apache.kafka.common.message.AddPartitionsToTxnResponseData.AddPartitionsToTxnResult
-import org.apache.kafka.common.message.AddPartitionsToTxnResponseData.AddPartitionsToTxnResultCollection
+import org.apache.kafka.common.message.AddPartitionsToTxnResponseData.{AddPartitionsToTxnResult, AddPartitionsToTxnResultCollection}
 import org.apache.kafka.common.message.AlterConfigsResponseData.AlterConfigsResourceResponse
 import org.apache.kafka.common.message.AlterPartitionReassignmentsResponseData.{ReassignablePartitionResponse, ReassignableTopicResponse}
 import org.apache.kafka.common.message.CreatePartitionsResponseData.CreatePartitionsTopicResult
@@ -76,8 +75,8 @@ import org.apache.kafka.storage.internals.log.{AppendOrigin, FetchIsolation, Fet
 import java.lang.{Long => JLong}
 import java.nio.ByteBuffer
 import java.util
-import java.util.concurrent.{CompletableFuture, ConcurrentHashMap}
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{CompletableFuture, ConcurrentHashMap}
 import java.util.{Collections, Optional, OptionalInt}
 import scala.annotation.nowarn
 import scala.collection.mutable.ArrayBuffer
@@ -242,6 +241,7 @@ class KafkaApis(val requestChannel: RequestChannel,
         case ApiKeys.ALLOCATE_PRODUCER_IDS => handleAllocateProducerIdsRequest(request)
         case ApiKeys.DESCRIBE_QUORUM => forwardToControllerOrFail(request)
         case ApiKeys.CONSUMER_GROUP_HEARTBEAT => handleConsumerGroupHeartbeat(request).exceptionally(handleError)
+        case ApiKeys.DESCRIBE_TOPIC_METRICS => handleTopicMetricsRequest(request)
         case _ => throw new IllegalStateException(s"No handler for request api key ${request.header.apiKey}")
       }
     } catch {
@@ -1988,6 +1988,21 @@ class KafkaApis(val requestChannel: RequestChannel,
     }
   }
 
+  // TODO: request handle 인터페이스 작성하기
+  def handleTopicMetricsRequest(request: RequestChannel.Request): Unit = {
+    val result = replicaManager.topicMetrics.flatMap { case (_, tmf) =>
+      tmf.metrics.byteSum.map { case (topicName, bytes) =>
+        new DescribeTopicMetricsResponseData.TopicMetrics()
+          .setTopicName(topicName)
+          .setBytes(bytes)
+      }
+    }.toList
+
+    requestHelper.sendResponseMaybeThrottle(request, throttleTimeMs => new DescribeTopicMetricsResponse(new DescribeTopicMetricsResponseData()
+      .setThrottleTimeMs(throttleTimeMs)
+      .setTopicMetrics(result.asJava)))
+  }
+
   def handleCreatePartitionsRequest(request: RequestChannel.Request): Unit = {
     val zkSupport = metadataSupport.requireZkOrThrow(KafkaApis.shouldAlwaysForward(request))
     val createPartitionsRequest = request.body[CreatePartitionsRequest]
@@ -2998,6 +3013,16 @@ class KafkaApis(val requestChannel: RequestChannel,
         (List.empty[DescribeLogDirsResponseData.DescribeLogDirsResult], Errors.CLUSTER_AUTHORIZATION_FAILED)
       }
     }
+
+    replicaManager.topicMetrics.foreach { case (path, tmf) =>
+      println(s"Path: ${path}")
+
+      tmf.metrics.byteSum.foreach { case (topic, value) => {
+        println(s"Key: $topic, Value: $value")
+      }
+      }
+    }
+    // TODO: 1번
     requestHelper.sendResponseMaybeThrottle(request, throttleTimeMs => new DescribeLogDirsResponse(new DescribeLogDirsResponseData()
       .setThrottleTimeMs(throttleTimeMs)
       .setResults(logDirInfos.asJava)

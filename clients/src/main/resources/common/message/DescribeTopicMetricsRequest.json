@@ -1,0 +1,12 @@
+{
+  "apiKey": 69,
+  "type": "request",
+  "listeners": [
+    "zkBroker",
+    "broker"
+  ],
+  "name": "DescribeTopicMetricsRequest",
+  "validVersions": "0",
+  "flexibleVersions": "0+",
+  "fields": []
+}

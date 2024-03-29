@@ -18,11 +18,7 @@ package org.apache.kafka.common.requests;
 
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.network.Send;
-import org.apache.kafka.common.protocol.ApiKeys;
-import org.apache.kafka.common.protocol.Errors;
-import org.apache.kafka.common.protocol.MessageUtil;
-import org.apache.kafka.common.protocol.ObjectSerializationCache;
-import org.apache.kafka.common.protocol.SendBuilder;
+import org.apache.kafka.common.protocol.*;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -312,6 +308,8 @@ public abstract class AbstractRequest implements AbstractRequestResponse {
                 return AllocateProducerIdsRequest.parse(buffer, apiVersion);
             case CONSUMER_GROUP_HEARTBEAT:
                 return ConsumerGroupHeartbeatRequest.parse(buffer, apiVersion);
+            case DESCRIBE_TOPIC_METRICS:
+                return DescribeTopicMetricsRequest.parse(buffer, apiVersion);
             default:
                 throw new AssertionError(String.format("ApiKey %s is not currently handled in `parseRequest`, the " +
                         "code should be updated to do so.", apiKey));

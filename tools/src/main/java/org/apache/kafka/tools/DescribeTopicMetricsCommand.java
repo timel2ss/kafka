@@ -45,7 +45,6 @@ public class DescribeTopicMetricsCommand {
     }
 
     static void execute(LogDirsCommandOptions options, Admin adminClient) throws Exception {
-        Set<String> topics = options.topics();
         Set<Integer> clusterBrokers = adminClient.describeCluster().nodes().get().stream().map(Node::id).collect(Collectors.toSet());
         Set<Integer> inputBrokers = options.brokers();
         Set<Integer> existingBrokers = inputBrokers.isEmpty() ? new HashSet<>(clusterBrokers) : new HashSet<>(inputBrokers);
@@ -61,20 +60,15 @@ public class DescribeTopicMetricsCommand {
                             commaDelimitedStringFromIntegerSet(clusterBrokers)));
         } else {
             KafkaAdminClient kafkaAdminClient = (KafkaAdminClient) adminClient;
-            DescribeTopicMetricsResult describeTopicsResult = kafkaAdminClient.describeTopicMetrics(existingBrokers, new DescribeTopicsOptions().timeoutMs(50000000));
-            Map<Integer, Map<String, Long>> topicMetrics = describeTopicsResult.allTopicMetrics().get();
+            DescribeTopicMetricsResult describeTopicsResult = kafkaAdminClient.describeTopicMetrics(existingBrokers, new DescribeTopicsOptions());
+            Map<Integer, Map<String, Double>> topicMetrics = describeTopicsResult.allTopicMetrics().get();
 
-
-            System.out.printf(
-                    "Received log directory information from brokers %s%n",
-                    commaDelimitedStringFromIntegerSet(existingBrokers));
             for (Integer brokerId : topicMetrics.keySet()) {
                 System.out.println("Broker Id: " + brokerId);
-                for (Map.Entry<String, Long> entry : topicMetrics.get(brokerId).entrySet()) {
+                for (Map.Entry<String, Double> entry : topicMetrics.get(brokerId).entrySet()) {
                     System.out.println("topicName: " + entry.getKey() + ", bytes: " + entry.getValue());
                 }
             }
-
         }
     }
 

@@ -9,9 +9,9 @@ import java.util.concurrent.ExecutionException;
 
 @InterfaceStability.Evolving
 public class DescribeTopicMetricsResult {
-    private final Map<Integer, KafkaFuture<Map<String, Long>>> futures;
+    private final Map<Integer, KafkaFuture<Map<String, Double>>> futures;
 
-    DescribeTopicMetricsResult(Map<Integer, KafkaFuture<Map<String, Long>>> futures) {
+    DescribeTopicMetricsResult(Map<Integer, KafkaFuture<Map<String, Double>>> futures) {
         this.futures = futures;
     }
 
@@ -20,7 +20,7 @@ public class DescribeTopicMetricsResult {
      * Return a map from brokerId to future which can be used to check the information of partitions on each individual broker.
      * The result of the future is a map from broker log directory path to a description of that log directory.
      */
-    public Map<Integer, KafkaFuture<Map<String, Long>>> topicMetrics() {
+    public Map<Integer, KafkaFuture<Map<String, Double>>> topicMetrics() {
         return futures;
     }
 
@@ -29,11 +29,11 @@ public class DescribeTopicMetricsResult {
      * The result of the future is a map from brokerId to a map from broker log directory path
      * to a description of that log directory.
      */
-    public KafkaFuture<Map<Integer, Map<String, Long>>> allTopicMetrics() {
+    public KafkaFuture<Map<Integer, Map<String, Double>>> allTopicMetrics() {
         return KafkaFuture.allOf(futures.values().toArray(new KafkaFuture[0])).
                 thenApply(v -> {
-                    Map<Integer, Map<String, Long>> topicMetrics = new HashMap<>(futures.size());
-                    for (Map.Entry<Integer, KafkaFuture<Map<String, Long>>> entry : futures.entrySet()) {
+                    Map<Integer, Map<String, Double>> topicMetrics = new HashMap<>(futures.size());
+                    for (Map.Entry<Integer, KafkaFuture<Map<String, Double>>> entry : futures.entrySet()) {
                         try {
                             topicMetrics.put(entry.getKey(), entry.getValue().get());
                         } catch (InterruptedException | ExecutionException e) {

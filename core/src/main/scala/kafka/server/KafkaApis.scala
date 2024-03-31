@@ -1991,10 +1991,10 @@ class KafkaApis(val requestChannel: RequestChannel,
   // TODO: request handle 인터페이스 작성하기
   def handleTopicMetricsRequest(request: RequestChannel.Request): Unit = {
     val result = replicaManager.topicMetrics.flatMap { case (_, tmf) =>
-      tmf.metrics.byteSum.map { case (topicName, bytes) =>
+      tmf.metrics.records.map { case (topicName, _) =>
         new DescribeTopicMetricsResponseData.TopicMetrics()
           .setTopicName(topicName)
-          .setBytes(bytes)
+          .setBytes(tmf.metrics.bytesPerSecond(topicName))
       }
     }.toList
 

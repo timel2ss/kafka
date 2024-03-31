@@ -1731,11 +1731,11 @@ public class KafkaAdminClient extends AdminClient {
 
     // TODO: describeTopicMetrics 작성
     public DescribeTopicMetricsResult describeTopicMetrics(Collection<Integer> brokers, DescribeTopicsOptions options) {
-        final Map<Integer, KafkaFutureImpl<Map<String, Long>>> futures = new HashMap<>(brokers.size());
+        final Map<Integer, KafkaFutureImpl<Map<String, Double>>> futures = new HashMap<>(brokers.size());
 
         final long now = time.milliseconds();
         for (final Integer brokerId : brokers) {
-            KafkaFutureImpl<Map<String, Long>> future = new KafkaFutureImpl<>();
+            KafkaFutureImpl<Map<String, Double>> future = new KafkaFutureImpl<>();
             futures.put(brokerId, future);
 
             runnable.call(new Call("describeTopicMetrics", calcDeadlineMs(now, options.timeoutMs()),
@@ -1749,7 +1749,7 @@ public class KafkaAdminClient extends AdminClient {
                 @Override
                 void handleResponse(AbstractResponse abstractResponse) {
                     DescribeTopicMetricsResponse response = (DescribeTopicMetricsResponse) abstractResponse;
-                    Map<String, Long> results = new HashMap<>(response.data().topicMetrics().size());
+                    Map<String, Double> results = new HashMap<>(response.data().topicMetrics().size());
                     for (DescribeTopicMetricsResponseData.TopicMetrics topicMetric : response.data().topicMetrics()) {
                         results.put(topicMetric.topicName(), topicMetric.bytes());
                     }

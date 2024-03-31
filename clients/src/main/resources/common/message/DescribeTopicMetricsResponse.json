@@ -31,7 +31,7 @@
         },
         {
           "name": "Bytes",
-          "type": "int64",
+          "type": "float64",
           "versions": "0",
           "about": "Bytes"
         }
